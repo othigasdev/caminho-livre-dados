@@ -19,7 +19,7 @@ CENTRO = (round((BBOX[0] + BBOX[2]) / 2, 4), round((BBOX[1] + BBOX[3]) / 2, 4))
 MVP_PADRAO = "https://caminholivre-gs.azurewebsites.net"
 OVERPASS_PADRAO = "https://overpass-api.de/api/interpreter"
 OPEN_METEO = "https://api.open-meteo.com/v1/forecast"
-AGENTE = {"User-Agent": "caminho-livre-gs-fiap/1.0 (projeto academico FIAP)"}
+AGENTE = {"User-Agent": "caminho-livre/1.0"}
 
 CAMPO_REGISTROS = {"osm": "elements", "relatos": "itens", "clima": "hourly"}
 
@@ -45,7 +45,7 @@ def caminho(fonte: str, dia: str) -> Path:
 
 
 def gravar(fonte: str, dia: str, texto: str) -> str:
-    json.loads(texto) 
+    json.loads(texto)
     destino = caminho(fonte, dia)
     destino.parent.mkdir(parents=True, exist_ok=True)
     temporario = destino.with_suffix(".tmp")
@@ -72,7 +72,7 @@ def avisar_falha(contexto: dict) -> None:
 @dag(
     dag_id="caminho_livre_coleta",
     description="Coleta diaria: OpenStreetMap, relatos do MVP e clima -> pasta chegada/",
-    schedule="0 6 * * *",  
+    schedule="0 6 * * *",
     start_date=pendulum.datetime(2026, 11, 10, tz=FUSO),
     catchup=True,
     max_active_runs=1,

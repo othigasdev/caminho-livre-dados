@@ -1,11 +1,8 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # 02 · Prata: tipos, nulos, regras de qualidade e MERGE
-# MAGIC Para cada fonte, este notebook:
-# MAGIC 1. abre o JSON bruto da Bronze e dá **tipo** a cada campo;
-# MAGIC 2. **trata nulos e inválidos** (padroniza domínios; o que falta no OpenStreetMap vira `nao_mapeado`, nunca "não existe");
-# MAGIC 3. aplica as **regras de qualidade** e conta quantos registros cada uma barrou;
-# MAGIC 4. faz **MERGE pela chave**, para que o mesmo registro vindo em vários lotes exista uma única vez.
+# MAGIC # 02 - Prata
+# MAGIC Tipos, nulos e domínios tratados, regras de qualidade e MERGE pela chave.
+# MAGIC Atributo ausente no OpenStreetMap vira `nao_mapeado`.
 # MAGIC
 # MAGIC | Regra | Fonte | O que barra |
 # MAGIC |---|---|---|
@@ -15,8 +12,7 @@
 # MAGIC | Q4 | Clima | hora sem medição, chuva negativa ou temperatura fora de -5 °C a 45 °C |
 # MAGIC | Q5 | Todas | registro repetido entre lotes (mesma chave): fica só a versão mais recente |
 # MAGIC
-# MAGIC Os barrados por Q1 a Q4 não são apagados: vão para `prata_rejeitados`, com a regra que os barrou.
-# MAGIC O notebook pode ser rodado quantas vezes for preciso: o MERGE não duplica nada.
+# MAGIC Os registros barrados por Q1 a Q4 vão para `prata_rejeitados`.
 
 # COMMAND ----------
 
@@ -60,8 +56,7 @@
 
 # MAGIC %md
 # MAGIC ## 1. OpenStreetMap
-# MAGIC Cada arquivo traz a lista `elements`. A tag de cada elemento é um mapa de chave e valor que muda de elemento para elemento,
-# MAGIC por isso é lida como `MAP<STRING, STRING>` e cada atributo de acessibilidade vira uma coluna de domínio fechado.
+# MAGIC As tags são lidas como `MAP<STRING, STRING>`; cada atributo de acessibilidade vira uma coluna.
 
 # COMMAND ----------
 
@@ -131,7 +126,7 @@
 # MAGIC   END AS regra_barrada
 # MAGIC FROM osm_tipado;
 # MAGIC
-# MAGIC -- Q5: o mesmo elemento vem em todos os lotes; fica a versão do lote mais recente
+# MAGIC -- Q5: fica a versao do lote mais recente
 # MAGIC CREATE OR REPLACE TEMP VIEW lote_prata_osm AS
 # MAGIC SELECT tipo_osm, osm_id, latitude, longitude, classe, rebaixamento, piso_tatil, tipo_travessia,
 # MAGIC        sinal_sonoro, cadeira_de_rodas, superficie, data_referencia,
@@ -144,8 +139,7 @@
 
 # MAGIC %md
 # MAGIC ## 2. Relatos do MVP
-# MAGIC O MVP já arredonda a coordenada e limpa a descrição antes de gravar. A Prata repete a máscara de e-mail, CPF e telefone
-# MAGIC (defesa em profundidade: o lakehouse não depende de a origem ter acertado).
+# MAGIC A máscara de e-mail, CPF e telefone é reaplicada aqui.
 
 # COMMAND ----------
 
@@ -180,7 +174,7 @@
 # MAGIC   END AS regra_barrada
 # MAGIC FROM relatos_tipado;
 # MAGIC
-# MAGIC -- Q5: o relato vem em todo lote (a API devolve a fila inteira); fica o estado mais recente
+# MAGIC -- Q5: fica o estado mais recente
 # MAGIC CREATE OR REPLACE TEMP VIEW lote_prata_relato AS
 # MAGIC SELECT id_relato, criado_em, atualizado_em, latitude, longitude, categoria, status, fonte,
 # MAGIC        descricao_mascarada, data_referencia, current_timestamp() AS atualizado_na_prata
@@ -192,8 +186,7 @@
 
 # MAGIC %md
 # MAGIC ## 3. Clima
-# MAGIC O Open-Meteo devolve listas paralelas (`time`, `temperature_2m`, `precipitation`). O `arrays_zip` junta as três
-# MAGIC e o `explode` gera uma linha por hora.
+# MAGIC Listas paralelas do Open-Meteo: `arrays_zip` + `explode`, uma linha por hora.
 
 # COMMAND ----------
 
@@ -231,13 +224,12 @@
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## 4. Regras de qualidade: total barrado por regra
-# MAGIC A contagem é gravada em `prata_qualidade` a cada execução. A tabela abaixo mostra a execução atual.
+# MAGIC ## 4. Regras de qualidade
 
 # COMMAND ----------
 
 REGRAS = [
-    # (fonte, regra, descrição, view avaliada, view do lote já sem duplicatas)
+    # fonte, regra, descricao, view avaliada, view sem duplicatas
     ("osm", "Q1_osm_fora_do_piloto", "Elemento sem coordenada ou com o centro fora do território do piloto", "osm_avaliado", None),
     ("osm", "Q2_osm_via_privada_ou_interna", "Via privada, interna ou de classe não reconhecida", "osm_avaliado", None),
     ("relatos", "Q3_relato_invalido", "Relato sem id/data, com domínio inválido ou fora do piloto", "relatos_avaliado", None),
@@ -249,10 +241,10 @@ REGRAS = [
 
 linhas = []
 for fonte, regra, descricao, avaliada, lote in REGRAS:
-    if lote is None:  # regra de validade: avaliada sobre tudo o que veio da Bronze
+    if lote is None:
         avaliado = spark.table(avaliada).count()
         barrado = spark.table(avaliada).filter(f"regra_barrada = '{regra}'").count()
-    else:             # duplicidade: avaliada só sobre os registros válidos
+    else:
         avaliado = spark.table(avaliada).filter("regra_barrada IS NULL").count()
         barrado = avaliado - spark.table(lote).count()
     linhas.append((fonte, regra, descricao, avaliado, barrado))
@@ -266,13 +258,13 @@ display(qualidade.orderBy("regra", "fonte"))
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC Os registros barrados pelas regras de validade ficam em quarentena, com a regra e o arquivo de origem, para auditoria.
+# MAGIC Quarentena
 
 # COMMAND ----------
 
 # MAGIC %sql
 # MAGIC CREATE OR REPLACE TABLE workspace.caminho_livre.prata_rejeitados
-# MAGIC COMMENT 'Quarentena: registros barrados pelas regras Q1 a Q4 (recriada a cada execucao a partir da Bronze)' AS
+# MAGIC COMMENT 'Registros barrados pelas regras Q1 a Q4' AS
 # MAGIC SELECT 'osm' AS fonte, regra_barrada AS regra, concat(tipo_osm, '/', osm_id) AS chave,
 # MAGIC        concat('classe=', classe, ' lat=', latitude, ' lon=', longitude) AS detalhe, data_referencia, arquivo_origem
 # MAGIC FROM osm_avaliado WHERE regra_barrada IS NOT NULL
@@ -291,9 +283,8 @@ display(qualidade.orderBy("regra", "fonte"))
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## 5. MERGE pela chave
-# MAGIC Chave nova entra (`INSERT`). Chave que já existe só é atualizada se o lote for **mais recente** que o que está gravado.
-# MAGIC Por isso, rodar o notebook de novo sem lote novo resulta em 0 linhas inseridas e 0 atualizadas.
+# MAGIC ## 5. MERGE
+# MAGIC Atualiza só quando o lote é mais recente que o gravado.
 
 # COMMAND ----------
 
@@ -325,8 +316,7 @@ display(qualidade.orderBy("regra", "fonte"))
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## 6. Conferência da Prata
-# MAGIC Total de linhas, total de chaves distintas (têm de ser iguais) e o histórico de MERGE gravado pelo Delta.
+# MAGIC ## 6. Conferência
 
 # COMMAND ----------
 
@@ -340,7 +330,6 @@ display(qualidade.orderBy("regra", "fonte"))
 from functools import reduce
 from pyspark.sql import functions as F
 
-# Histórico do Delta: cada MERGE fica registrado com o número de linhas inseridas e atualizadas
 historicos = [
     spark.sql(f"DESCRIBE HISTORY workspace.caminho_livre.{tabela}")
         .filter("operation = 'MERGE'")

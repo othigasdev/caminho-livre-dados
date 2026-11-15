@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Contrato Ouro -> MVP: painel de atenção por quadrícula",
-  "description": "Arquivo gerado por databricks/05_entrega_mvp_e_evidencias.py a partir de workspace.caminho_livre.ouro_painel_celula. O MVP serve este conteúdo em GET /api/painel. Dado agregado: não contém relato individual, identificador nem coordenada de relato.",
+  "title": "Painel por quadrícula (Ouro -> MVP)",
+  "description": "Exportado por databricks/05_exportar_para_mvp.py a partir de workspace.caminho_livre.ouro_painel_celula e servido pelo MVP em GET /api/painel. Agregado por quadrícula, sem dado pessoal.",
   "type": "object",
   "required": ["tabela_origem", "gerado_em", "data_referencia", "fontes", "celulas"],
   "properties": {

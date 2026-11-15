@@ -1,33 +1,26 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # 03 · Ouro: modelo dimensional, LGPD e a tabela que o MVP consome
+# MAGIC # 03 - Ouro
 # MAGIC
-# MAGIC | Tabela | Tipo | Grão / conteúdo |
+# MAGIC | Tabela | Tipo | Grão |
 # MAGIC |---|---|---|
-# MAGIC | `fato_relato` | fato | um relato de barreira registrado no MVP |
-# MAGIC | `fato_elemento_via` | fato | um elemento de pedestre do OpenStreetMap (travessia, meio-fio, calçada) |
-# MAGIC | `dim_celula` | dimensão (compartilhada pelas duas fatos) | quadrícula de ~110 m × 100 m do território do piloto |
-# MAGIC | `dim_data` | dimensão | dia, com a chuva e a temperatura do Open-Meteo |
-# MAGIC | `dim_categoria` | dimensão | categoria da barreira relatada |
-# MAGIC | `dim_status` | dimensão | status do relato na fila do gestor |
-# MAGIC | `dim_classe_elemento` | dimensão | classe do elemento do OpenStreetMap |
-# MAGIC | `ouro_painel_celula` | agregada para o produto | **a tabela que o MVP usa**: situação de cada quadrícula |
+# MAGIC | `fato_relato` | fato | relato de barreira |
+# MAGIC | `fato_elemento_via` | fato | elemento de pedestre do OpenStreetMap |
+# MAGIC | `dim_celula` | dimensão | quadrícula de ~110 m × 100 m |
+# MAGIC | `dim_data` | dimensão | dia, com chuva e temperatura |
+# MAGIC | `dim_categoria` | dimensão | categoria da barreira |
+# MAGIC | `dim_status` | dimensão | status do relato |
+# MAGIC | `dim_classe_elemento` | dimensão | classe do elemento OSM |
+# MAGIC | `ouro_painel_celula` | agregada | situação de cada quadrícula (usada pelo MVP) |
 # MAGIC
-# MAGIC **LGPD na Ouro.** O relato é o único dado ligado a uma pessoa (indica onde alguém esteve e traz texto livre). Na `fato_relato`:
-# MAGIC - o identificador vira **hash SHA-256 com sal** (o sal é informado no widget e não fica no repositório);
-# MAGIC - a **coordenada não entra**: fica só a quadrícula (~100 m);
-# MAGIC - a **descrição não entra**: fica só o indicador `tem_descricao`;
-# MAGIC - o horário é reduzido a **dia e hora cheia**.
-# MAGIC
-# MAGIC A Ouro é recriada a partir da Prata a cada execução, então rodar de novo dá o mesmo resultado.
+# MAGIC LGPD na `fato_relato`: id em hash SHA-256 com sal (informado no widget), sem coordenada, sem descrição e horário reduzido a dia e hora.
 
 # COMMAND ----------
 
-dbutils.widgets.text("salt_hash", "", "Sal do hash (segredo: não versionar)")
+dbutils.widgets.text("salt_hash", "", "Sal do hash")
 SAL = dbutils.widgets.get("salt_hash").strip()
-assert len(SAL) >= 16, "Preencha o widget salt_hash (no topo do notebook) com um texto secreto de 16 ou mais caracteres."
+assert len(SAL) >= 16, "Preencha o widget salt_hash (16 ou mais caracteres)."
 
-# O sal entra por uma view temporária: não aparece em nenhuma consulta salva nem no histórico das tabelas.
 spark.createDataFrame([(SAL,)], "sal STRING").createOrReplaceTempView("segredo_sal")
 spark.sql("USE workspace.caminho_livre")
 
@@ -40,7 +33,6 @@ spark.sql("USE workspace.caminho_livre")
 
 # MAGIC %sql
 # MAGIC -- Quadrícula do piloto: 11 linhas x 15 colunas de 0,001 grau (o mesmo PILOT_BBOX do MVP).
-# MAGIC -- As contas usam inteiros (grau x 10.000) para a borda da célula não sofrer com arredondamento de ponto flutuante.
 # MAGIC CREATE OR REPLACE TABLE dim_celula
 # MAGIC COMMENT 'Quadricula de ~110 m x 100 m do territorio do piloto' AS
 # MAGIC SELECT CAST(l * 15 + c + 1 AS INT) AS sk_celula,
@@ -116,7 +108,6 @@ spark.sql("USE workspace.caminho_livre")
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC -- Grão: um relato. Dados pessoais protegidos (ver o topo do notebook).
 # MAGIC CREATE OR REPLACE TABLE fato_relato
 # MAGIC COMMENT 'Fato: um relato de barreira. LGPD: id em hash com sal, sem coordenada e sem texto livre' AS
 # MAGIC SELECT
@@ -127,7 +118,6 @@ spark.sql("USE workspace.caminho_livre")
 # MAGIC   hour(from_utc_timestamp(r.criado_em, 'America/Sao_Paulo'))                                 AS hora_criacao,
 # MAGIC   r.fonte,
 # MAGIC   r.descricao_mascarada IS NOT NULL                   AS tem_descricao,
-# MAGIC   -- A API expõe só a última mudança: para relato já revisado, é o tempo entre a criação e essa mudança.
 # MAGIC   CASE WHEN st.revisado THEN round((unix_timestamp(r.atualizado_em) - unix_timestamp(r.criado_em)) / 3600.0, 2) END AS horas_ate_revisao,
 # MAGIC   CAST(st.aberto AS INT)               AS fl_aberto,
 # MAGIC   CAST(st.revisado AS INT)             AS fl_revisado,
@@ -138,7 +128,6 @@ spark.sql("USE workspace.caminho_livre")
 # MAGIC JOIN dim_categoria cat ON cat.categoria = r.categoria
 # MAGIC JOIN dim_status st     ON st.status = r.status;
 # MAGIC
-# MAGIC -- Grão: um elemento de pedestre do OpenStreetMap (dado aberto, sem dado pessoal)
 # MAGIC CREATE OR REPLACE TABLE fato_elemento_via
 # MAGIC COMMENT 'Fato: um elemento de pedestre do OpenStreetMap, com os atributos de acessibilidade mapeados' AS
 # MAGIC SELECT
@@ -158,22 +147,17 @@ spark.sql("USE workspace.caminho_livre")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## A tabela que o MVP consome: `ouro_painel_celula`
-# MAGIC Uma linha por quadrícula, juntando as duas fatos. É agregada: não tem relato individual nem identificador.
-# MAGIC
-# MAGIC **Nível de atenção** (regra fixa e explicável, para o gestor priorizar a vistoria; quem decide é uma pessoa):
-# MAGIC - `alta`: 2 ou mais relatos abertos, ou relato aberto em quadrícula sem nenhum rebaixamento mapeado;
-# MAGIC - `media`: 1 relato aberto, ou travessia sem nenhum rebaixamento mapeado;
-# MAGIC - `baixa`: tem travessia e rebaixamento mapeado, sem relato aberto;
-# MAGIC - `sem_travessia`: nada a avaliar na quadrícula.
-# MAGIC
-# MAGIC "Sem rebaixamento mapeado" quer dizer que o dado não está no OpenStreetMap; não prova que a rampa não existe.
+# MAGIC ## Painel do MVP: `ouro_painel_celula`
+# MAGIC - `alta`: 2+ relatos abertos, ou relato aberto sem rebaixamento mapeado
+# MAGIC - `media`: 1 relato aberto, ou travessia sem rebaixamento mapeado
+# MAGIC - `baixa`: travessia com rebaixamento mapeado e sem relato aberto
+# MAGIC - `sem_travessia`: nada a avaliar
 
 # COMMAND ----------
 
 # MAGIC %sql
 # MAGIC CREATE OR REPLACE TABLE ouro_painel_celula
-# MAGIC COMMENT 'Consumida pelo MVP (GET /api/painel): situacao de cada quadricula do piloto. Agregada, sem dado pessoal' AS
+# MAGIC COMMENT 'Situacao de cada quadricula, usada pelo MVP em /api/painel' AS
 # MAGIC WITH infra AS (
 # MAGIC   SELECT f.sk_celula,
 # MAGIC          sum(CASE WHEN cl.classe = 'travessia' THEN 1 ELSE 0 END)                                              AS travessias,
@@ -214,8 +198,7 @@ spark.sql("USE workspace.caminho_livre")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Evidência de LGPD na Ouro
-# MAGIC A `fato_relato` não tem coordenada, texto nem o id original; o identificador é um hash de 64 caracteres.
+# MAGIC ## Conferência de LGPD
 
 # COMMAND ----------
 

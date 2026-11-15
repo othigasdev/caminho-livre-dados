@@ -1,5 +1,5 @@
 {
-  "ntfy_topic_secret": "https://ntfy.sh/TROQUE-PELO-TOPICO-DA-EQUIPE",
+  "ntfy_topic_secret": "https://ntfy.sh/seu-topico",
   "caminholivre_api_url": "https://caminholivre-gs.azurewebsites.net",
   "overpass_url": "https://overpass-api.de/api/interpreter"
 }

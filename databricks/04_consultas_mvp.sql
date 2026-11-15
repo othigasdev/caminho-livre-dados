@@ -1,15 +1,14 @@
 -- Databricks notebook source
 -- MAGIC %md
--- MAGIC # 04 · As cinco consultas SQL que respondem às perguntas do MVP
--- MAGIC Cada consulta fica salva como *view* na Ouro (para o resultado poder ser reproduzido e exportado) e é executada em seguida.
+-- MAGIC # 04 - Consultas
 -- MAGIC
--- MAGIC | # | Pergunta do MVP | Quem pergunta |
--- MAGIC |---|---|---|
--- MAGIC | Q1 | Onde há barreiras relatadas que continuam abertas? | cidadão |
--- MAGIC | Q2 | Em quais quadras há travessia sem nenhum rebaixamento mapeado? | cidadão e gestor |
--- MAGIC | Q3 | Quanto do território já tem dado de acessibilidade mapeado? | gestor |
--- MAGIC | Q4 | **Impacto:** os relatos estão sendo revisados e resolvidos? Em quanto tempo? | gestor e sociedade |
--- MAGIC | Q5 | Em que dias os relatos chegam, e a chuva muda isso? | gestor |
+-- MAGIC | # | Pergunta |
+-- MAGIC |---|---|
+-- MAGIC | Q1 | Onde há barreiras relatadas que continuam abertas? |
+-- MAGIC | Q2 | Em quais quadras há travessia sem nenhum rebaixamento mapeado? |
+-- MAGIC | Q3 | Quanto do território já tem dado de acessibilidade mapeado? |
+-- MAGIC | Q4 | Os relatos estão sendo revisados e resolvidos? Em quanto tempo? (impacto) |
+-- MAGIC | Q5 | Em que dias os relatos chegam, e a chuva muda isso? |
 
 -- COMMAND ----------
 

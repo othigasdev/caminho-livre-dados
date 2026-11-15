@@ -1,16 +1,13 @@
-# Airflow 3 local, em um unico container (modo standalone), so para a coleta.
-# Uso: docker compose up -d  ->  http://localhost:8080
 services:
   airflow:
     image: ${AIRFLOW_IMAGE:-apache/airflow:3.2.0}
     command: standalone
     user: "${AIRFLOW_UID:-50000}:0"
     ports:
-      - "127.0.0.1:8080:8080"   # so na maquina local: o login abaixo esta desligado
+      - "127.0.0.1:8080:8080"
     environment:
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__DEFAULT_TIMEZONE: America/Sao_Paulo
-      # Ambiente local de uma pessoa so: entra direto como admin, sem senha para guardar.
       AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "true"
       CHEGADA_DIR: /opt/airflow/chegada
       AMOSTRAS_DIR: /opt/airflow/amostras

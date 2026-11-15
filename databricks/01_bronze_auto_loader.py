@@ -1,16 +1,7 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # 01 · Bronze: carga incremental com Auto Loader
-# MAGIC Lê **só os arquivos novos** de cada pasta do Volume `chegada` e grava nas tabelas Bronze, uma linha por arquivo,
-# MAGIC com o JSON bruto preservado em texto. O *checkpoint* do Auto Loader guarda quais arquivos já entraram:
-# MAGIC por isso o 2º lote só acrescenta o que é novo, e rodar de novo não duplica nada.
-# MAGIC
-# MAGIC Rode este notebook **três vezes** para gerar a evidência do requisito 05:
-# MAGIC 1. depois de enviar o 1º lote;
-# MAGIC 2. de novo, sem enviar nada (2ª execução: nenhum arquivo novo);
-# MAGIC 3. depois de enviar o 2º lote.
-# MAGIC
-# MAGIC A última célula mostra o histórico com as contagens antes e depois de cada execução.
+# MAGIC # 01 - Bronze (Auto Loader)
+# MAGIC Carga incremental do Volume `chegada`: uma linha por arquivo, com o JSON bruto. O checkpoint garante que cada arquivo entra uma vez só.
 
 # COMMAND ----------
 
@@ -19,8 +10,7 @@ from pyspark.sql import functions as F
 ESQUEMA = "workspace.caminho_livre"
 BASE = "/Volumes/workspace/caminho_livre/chegada"
 
-# Campos de primeiro nível de cada fonte. Os blocos aninhados ficam como texto JSON (dado bruto):
-# quem define tipos e explode as listas é a Prata.
+# campos de primeiro nivel; os blocos aninhados ficam como texto e sao tratados na Prata
 FONTES = {
     "osm": "version DOUBLE, generator STRING, osm3s STRING, elements STRING",
     "relatos": "atualizado_em STRING, itens STRING",
@@ -30,7 +20,7 @@ FONTES = {
 spark.sql(f"""
 CREATE TABLE IF NOT EXISTS {ESQUEMA}.bronze_controle_cargas (
   executado_em TIMESTAMP, tabela STRING, linhas_antes BIGINT, linhas_depois BIGINT, arquivos_novos BIGINT
-) COMMENT 'Historico das cargas da Bronze: contagem antes e depois de cada execucao'
+) COMMENT 'Historico das cargas da Bronze'
 """)
 
 
@@ -42,7 +32,7 @@ def contar(tabela: str) -> int:
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Carga: uma tabela Bronze por fonte
+# MAGIC ## Carga
 
 # COMMAND ----------
 
@@ -53,7 +43,7 @@ for fonte, campos in FONTES.items():
 
     (spark.readStream.format("cloudFiles")
         .option("cloudFiles.format", "json")
-        .option("multiLine", "true")              # cada arquivo é um único documento JSON
+        .option("multiLine", "true")
         .schema(campos)
         .load(f"{BASE}/{fonte}")
         .withColumn("arquivo_origem", F.col("_metadata.file_path"))
@@ -62,7 +52,7 @@ for fonte, campos in FONTES.items():
         .withColumn("carregado_em", F.current_timestamp())
      .writeStream
         .option("checkpointLocation", f"{BASE}/_controle/checkpoint_{fonte}")
-        .trigger(availableNow=True)               # processa o que há de novo e encerra
+        .trigger(availableNow=True)
         .toTable(tabela)
         .awaitTermination())
 
@@ -77,9 +67,7 @@ spark.createDataFrame(resultado, "tabela STRING, linhas_antes BIGINT, linhas_dep
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Evidência: contagens antes e depois de cada execução
-# MAGIC Cada execução deste notebook acrescenta três linhas (uma por tabela). Na 2ª execução sem arquivos novos,
-# MAGIC `arquivos_novos` é 0 e `linhas_depois` é igual a `linhas_antes`.
+# MAGIC ## Histórico das cargas
 
 # COMMAND ----------
 
@@ -93,8 +81,7 @@ spark.createDataFrame(resultado, "tabela STRING, linhas_antes BIGINT, linhas_dep
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Arquivos carregados e prova de que não há duplicata
-# MAGIC Cada arquivo do Volume aparece exatamente uma vez na Bronze (`vezes_carregado = 1`).
+# MAGIC ## Arquivos carregados
 
 # COMMAND ----------
 
@@ -112,8 +99,7 @@ spark.createDataFrame(resultado, "tabela STRING, linhas_antes BIGINT, linhas_dep
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Conferência do dado bruto
-# MAGIC Nenhum arquivo pode ter entrado sem o bloco de registros (arquivo truncado ou resposta de erro da API).
+# MAGIC ## Conferência
 
 # COMMAND ----------
 

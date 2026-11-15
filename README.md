@@ -1,10 +1,10 @@
 # Caminho Livre: componente Dados
 
-Pipeline de dados do **Caminho Livre**, o mapa colaborativo de barreiras de acessibilidade em calçadas e travessias.
-Global Solution FIAP 2026.2 (CitizenTech), 4ES. Entrega de **Big Data Architecture & Data Integration**.
+Pipeline de dados do **Caminho Livre**, mapa colaborativo de barreiras de acessibilidade em calçadas e travessias
+(Global Solution FIAP 2026.2, 4ES).
 
-O pipeline coleta dados reais com o Airflow, trata em camadas Bronze, Prata e Ouro no Databricks e entrega ao MVP a
-**situação de cada quadra** do piloto, que o cidadão vê em https://caminholivre-gs.azurewebsites.net.
+Coleta com Airflow, camadas Bronze, Prata e Ouro no Databricks e publicação da **situação de cada quadra** no MVP:
+https://caminholivre-gs.azurewebsites.net.
 
 ## Ficha Técnica do MVP
 
@@ -96,7 +96,7 @@ ao Volume pela interface, e a saída para o MVP é um arquivo com formato fixado
 - O sal do hash é digitado em um widget do notebook 03 e não fica no repositório.
 - A consulta ao OpenStreetMap não pede o nome de quem mapeou.
 - O que vai para o MVP (`ouro_painel_celula`) é agregado por quadrícula.
-- Este repositório não tem chave, senha nem dado pessoal real. A pasta `chegada/` e o `variables.json` estão no `.gitignore`.
+- A pasta `chegada/` e o `variables.json` estão no `.gitignore`.
 
 ### Contrato com o MVP
 
@@ -113,10 +113,10 @@ databricks/01_bronze_auto_loader.py Bronze incremental
 databricks/02_prata_tratamento_merge.py  Prata: tipos, regras de qualidade, MERGE
 databricks/03_ouro_modelo_dimensional.py Ouro: fatos, dimensões, LGPD, painel do MVP
 databricks/04_consultas_mvp.sql     as cinco consultas SQL
-databricks/05_entrega_mvp_e_evidencias.py  exporta o contrato para o MVP e as evidências
+databricks/05_exportar_para_mvp.py exporta o painel para o MVP
 contrato/                           formato do arquivo entregue ao MVP
 amostras/                           um pouco de cada fonte (gerado pelo DAG)
-relatorio/                          gerador do relatório em PDF
+relatorio/                          relatório em PDF
 docker-compose.yml                  Airflow 3 local
 variables.exemplo.json              modelo das Variables do Airflow (sem segredo)
 ```
@@ -138,7 +138,7 @@ docker compose up -d                      # Airflow em http://localhost:8080 (le
 Configure as Variables (as fontes não exigem chave; o único segredo é a URL do tópico de notificação):
 
 ```bash
-cp variables.exemplo.json variables.json   # edite: troque o tópico do ntfy.sh pelo da equipe
+cp variables.exemplo.json variables.json   # edite: coloque o seu tópico do ntfy.sh
 docker compose cp variables.json airflow:/tmp/variables.json
 docker compose exec airflow airflow variables import /tmp/variables.json
 ```
@@ -157,39 +157,29 @@ chegada/clima/clima_2026-11-14.json
 O clima é o do dia de referência. OpenStreetMap e relatos são o retrato do momento da coleta: as duas APIs não guardam
 histórico, então as execuções recuperadas pelo `catchup` trazem o mesmo retrato, e a Prata descarta as repetições (regra Q5).
 
-### 2. Databricks: ambiente e 1º lote
+### 2. Databricks: primeira carga
 
 1. Importe a pasta `databricks/` no workspace (**Workspace > Create > Git folder** com a URL deste repositório, ou
    **Import** dos arquivos).
 2. Rode `00_preparar_ambiente`.
 3. No **Catalog**, abra `workspace > caminho_livre > chegada`, crie as pastas `osm`, `relatos` e `clima` e envie
-   (**Upload to this volume**) os arquivos do **1º lote**, cada um na pasta da sua fonte.
+   (**Upload to this volume**) os arquivos coletados, cada um na pasta da sua fonte.
 4. Rode `01_bronze_auto_loader`. Rode de novo, sem enviar nada: `arquivos_novos` fica 0.
 5. Rode `02_prata_tratamento_merge`.
 
-### 3. 2º lote
+### 3. Cargas seguintes
 
 1. Em outro dia de coleta, envie ao Volume só os arquivos novos de `chegada/`.
 2. Rode `01_bronze_auto_loader`: só os arquivos novos entram.
 3. Rode `02_prata_tratamento_merge`: o MERGE insere o que é novo e atualiza o que mudou.
 
-### 4. Ouro, consultas e entrega
+### 4. Ouro, consultas e exportação
 
 1. Rode `03_ouro_modelo_dimensional`. Antes, preencha o widget `salt_hash` com um texto secreto de 16 ou mais caracteres.
 2. Rode `04_consultas_mvp`.
-3. Rode `05_entrega_mvp_e_evidencias` e baixe do Volume `entrega` os arquivos `ouro_painel_celula.json` e `evidencias.json`.
+3. Rode `05_exportar_para_mvp` e baixe do Volume `entrega` o arquivo `ouro_painel_celula.json`.
 4. Copie `ouro_painel_celula.json` para `app/dados/` no repositório do MVP e faça o push: o pipeline publica e a seção
    **Situação por quadra** passa a mostrar os dados.
-
-### 5. Relatório
-
-```bash
-# coloque evidencias.json em relatorio/ e os prints em relatorio/prints/ (nomes em relatorio/prints/LEIA-ME.md)
-python relatorio/gerar_relatorio.py
-# abra relatorio/relatorio-big-data.html no navegador > Imprimir > Salvar como PDF
-```
-
-O script lista no terminal o que ainda falta.
 
 ## Limites conhecidos
 

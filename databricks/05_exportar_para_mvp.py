@@ -1,15 +1,9 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # 05 · Entrega ao MVP e evidências do relatório
-# MAGIC Grava dois arquivos no Volume `entrega`:
-# MAGIC
-# MAGIC | Arquivo | Para quê |
-# MAGIC |---|---|
-# MAGIC | `ouro_painel_celula.json` | **Contrato com o produto.** É a tabela `ouro_painel_celula` no formato que o MVP lê (`contrato/ouro_painel_celula.schema.json`). Vai para `app/dados/` no repositório do MVP e é servido em `GET /api/painel`. |
-# MAGIC | `evidencias.json` | Contagens e resultados reais desta execução, usados por `relatorio/gerar_relatorio.py`. |
-# MAGIC
-# MAGIC O Databricks Free Edition não aceita conexão de fora, então a entrega é por arquivo, do mesmo jeito que a chegada.
-# MAGIC Baixe os dois pelo Catalog Explorer (Volume `entrega` > arquivo > *Download*).
+# MAGIC # 05 - Exportação para o MVP
+# MAGIC Grava no Volume `entrega`:
+# MAGIC - `ouro_painel_celula.json`: tabela `ouro_painel_celula` no formato de `contrato/ouro_painel_celula.schema.json`, servida pelo MVP em `/api/painel`;
+# MAGIC - `resumo_execucao.json`: contagens e resultados das consultas.
 
 # COMMAND ----------
 
@@ -24,7 +18,6 @@ os.makedirs(SAIDA, exist_ok=True)
 
 
 def linhas(sql: str) -> list[dict]:
-    """Resultado da consulta como lista de dicionários (decimais viram número, para o JSON)."""
     return [{coluna: float(valor) if isinstance(valor, Decimal) else valor
              for coluna, valor in linha.asDict(recursive=True).items()} for linha in spark.sql(sql).collect()]
 
@@ -40,8 +33,7 @@ agora = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## 1. Contrato com o MVP: `ouro_painel_celula.json`
-# MAGIC Só as quadrículas com algo a mostrar (as `sem_travessia` e sem relato ficam de fora).
+# MAGIC ## 1. Painel do MVP
 
 # COMMAND ----------
 
@@ -71,7 +63,7 @@ display(spark.sql(f"""
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## 2. Evidências para o relatório: `evidencias.json`
+# MAGIC ## 2. Resumo da execução
 
 # COMMAND ----------
 
@@ -95,7 +87,7 @@ def merges(tabela: str) -> list[dict]:
                           .orderBy("version").collect()]
 
 
-evidencias = {
+resumo = {
     "gerado_em": agora,
     "contagens": {t: spark.table(f"{ESQUEMA}.{t}").count() for t in TABELAS},
     "bronze_controle": linhas(f"""
@@ -108,7 +100,6 @@ evidencias = {
         UNION ALL SELECT 'relatos', CAST(data_referencia AS STRING), count(*) FROM {ESQUEMA}.bronze_relatos GROUP BY ALL
         UNION ALL SELECT 'clima', CAST(data_referencia AS STRING), count(*) FROM {ESQUEMA}.bronze_clima GROUP BY ALL
         ORDER BY fonte, dia"""),
-    # regras de qualidade da execução mais recente da Prata
     "qualidade": linhas(f"""
         SELECT fonte, regra, descricao, total_avaliado, total_barrado FROM {ESQUEMA}.prata_qualidade
         WHERE executado_em = (SELECT max(executado_em) FROM {ESQUEMA}.prata_qualidade) ORDER BY regra, fonte"""),
@@ -127,13 +118,13 @@ evidencias = {
         "exemplo_hash": linhas(f"SELECT concat(left(id_relato_hash, 16), '…') AS h FROM {ESQUEMA}.fato_relato LIMIT 1"),
     },
 }
-gravar("evidencias.json", evidencias)
+gravar("resumo_execucao.json", resumo)
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## 3. Resumo desta execução
+# MAGIC ## 3. Contagens
 
 # COMMAND ----------
 
-display(spark.createDataFrame([(t, n) for t, n in evidencias["contagens"].items()], "tabela STRING, linhas BIGINT"))
+display(spark.createDataFrame([(t, n) for t, n in resumo["contagens"].items()], "tabela STRING, linhas BIGINT"))
