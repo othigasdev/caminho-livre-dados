@@ -1,0 +1,17 @@
+# Pasta de pouso: os arquivos coletados sobem para o Volume, nao para o Git
+chegada/*
+!chegada/.gitkeep
+
+# Segredos e configuracao local: NUNCA versionar
+.env
+variables.json
+*.secret
+
+# Evidencias baixadas do Databricks e relatorio gerado
+relatorio/evidencias.json
+relatorio/*.html
+relatorio/*.pdf
+
+__pycache__/
+*.pyc
+logs/

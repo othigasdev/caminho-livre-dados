@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Contrato Ouro -> MVP: painel de atenção por quadrícula",
+  "description": "Arquivo gerado por databricks/05_entrega_mvp_e_evidencias.py a partir de workspace.caminho_livre.ouro_painel_celula. O MVP serve este conteúdo em GET /api/painel. Dado agregado: não contém relato individual, identificador nem coordenada de relato.",
+  "type": "object",
+  "required": ["tabela_origem", "gerado_em", "data_referencia", "fontes", "celulas"],
+  "properties": {
+    "tabela_origem": { "const": "workspace.caminho_livre.ouro_painel_celula" },
+    "gerado_em": { "type": "string", "description": "Momento da exportação, UTC, ISO 8601" },
+    "data_referencia": { "type": "string", "description": "Dia do lote mais recente do OpenStreetMap (AAAA-MM-DD)" },
+    "fontes": { "type": "array", "items": { "type": "string" } },
+    "celulas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id_celula", "lat_min", "lat_max", "lon_min", "lon_max", "travessias", "pontos_rebaixados",
+                     "pontos_piso_tatil", "travessias_sem_dado", "relatos_total", "relatos_abertos",
+                     "relatos_abertos_demonstracao", "nivel_atencao"],
+        "properties": {
+          "id_celula": { "type": "string", "pattern": "^L[0-9]{2}C[0-9]{2}$" },
+          "lat_min": { "type": "number" }, "lat_max": { "type": "number" },
+          "lon_min": { "type": "number" }, "lon_max": { "type": "number" },
+          "travessias": { "type": "integer", "minimum": 0, "description": "Travessias de pedestres mapeadas no OpenStreetMap" },
+          "pontos_rebaixados": { "type": "integer", "minimum": 0, "description": "Travessias e meios-fios com rebaixamento acessível mapeado" },
+          "pontos_piso_tatil": { "type": "integer", "minimum": 0 },
+          "travessias_sem_dado": { "type": "integer", "minimum": 0, "description": "Travessias sem nenhuma informação de rebaixamento nem de piso tátil" },
+          "relatos_total": { "type": "integer", "minimum": 0 },
+          "relatos_abertos": { "type": "integer", "minimum": 0, "description": "Relatos pendentes ou em análise" },
+          "relatos_abertos_demonstracao": { "type": "integer", "minimum": 0, "description": "Parte dos abertos que é dado sintético de demonstração" },
+          "nivel_atencao": { "enum": ["alta", "media", "baixa", "sem_travessia"] }
+        }
+      }
+    }
+  }
+}
