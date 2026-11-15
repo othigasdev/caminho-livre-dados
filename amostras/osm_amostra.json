@@ -1,0 +1,65 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-11-15T18:32:51Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+    {
+      "type": "node",
+      "id": 457566811,
+      "lat": -23.5609618,
+      "lon": -46.655009,
+      "tags": {
+        "crossing": "uncontrolled",
+        "highway": "crossing"
+      }
+    },
+    {
+      "type": "node",
+      "id": 861891048,
+      "lat": -23.5599369,
+      "lon": -46.6486753,
+      "tags": {
+        "highway": "crossing"
+      }
+    },
+    {
+      "type": "node",
+      "id": 2081876388,
+      "lat": -23.5625711,
+      "lon": -46.6588054,
+      "tags": {
+        "bicycle": "yes",
+        "crossing": "marked",
+        "crossing:markings": "yes",
+        "highway": "crossing"
+      }
+    },
+    {
+      "type": "node",
+      "id": 2099094542,
+      "lat": -23.5612669,
+      "lon": -46.6551904,
+      "tags": {
+        "crossing": "marked",
+        "highway": "crossing"
+      }
+    },
+    {
+      "type": "node",
+      "id": 2352437550,
+      "lat": -23.5628401,
+      "lon": -46.654936,
+      "tags": {
+        "bicycle": "yes",
+        "button_operated": "no",
+        "crossing": "traffic_signals",
+        "highway": "crossing",
+        "traffic_signals:sound": "no",
+        "traffic_signals:vibration": "no"
+      }
+    }
+  ]
+}

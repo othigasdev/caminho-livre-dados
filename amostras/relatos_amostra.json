@@ -1,0 +1,60 @@
+{
+  "atualizado_em": "2026-11-15T18:31:58Z",
+  "itens": [
+    {
+      "id": "c57d3761-28da-4a59-a289-60b1428e0f44",
+      "criado_em": "2026-11-14T14:01:16.333Z",
+      "atualizado_em": "2026-11-14T14:01:16.333Z",
+      "latitude": -23.5672,
+      "longitude": -46.6481,
+      "categoria": "calcada_obstruida",
+      "descricao_sanitizada": "Raízes de árvore levantaram o piso [demonstração] (via vistoria)",
+      "status": "pendente",
+      "fonte": "cidadao"
+    },
+    {
+      "id": "4280a70d-3596-4f6d-bdcf-69e6a0dd8ee2",
+      "criado_em": "2026-11-14T14:01:16.219Z",
+      "atualizado_em": "2026-11-14T14:01:16.219Z",
+      "latitude": -23.5617,
+      "longitude": -46.656,
+      "categoria": "travessia_barreira",
+      "descricao_sanitizada": "Faixa de pedestre termina em guia alta [demonstração] (via central_156)",
+      "status": "pendente",
+      "fonte": "cidadao"
+    },
+    {
+      "id": "9489ac27-1d7d-478b-b57d-707a6b43d20b",
+      "criado_em": "2026-11-14T14:01:16.073Z",
+      "atualizado_em": "2026-11-14T14:01:16.073Z",
+      "latitude": -23.5639,
+      "longitude": -46.6508,
+      "categoria": "calcada_obstruida",
+      "descricao_sanitizada": "Banca de jornal ocupa a calçada inteira, cadeirante desvia pela rua [demonstração] (via vistoria)",
+      "status": "pendente",
+      "fonte": "cidadao"
+    },
+    {
+      "id": "b96eb6ba-8da0-422a-8061-2eab5855d503",
+      "criado_em": "2026-11-14T14:01:15.949Z",
+      "atualizado_em": "2026-11-14T14:01:15.949Z",
+      "latitude": -23.5652,
+      "longitude": -46.6531,
+      "categoria": "rampa_bloqueada",
+      "descricao_sanitizada": "Rampa da esquina tomada por caçamba de entulho [demonstração] (via central_156)",
+      "status": "pendente",
+      "fonte": "cidadao"
+    },
+    {
+      "id": "aabbbfa4-3d28-4833-8867-f657a69ba826",
+      "criado_em": "2026-11-13T23:52:38.723Z",
+      "atualizado_em": "2026-11-13T23:54:10.475Z",
+      "latitude": -23.5645,
+      "longitude": -46.6525,
+      "categoria": "calcada_obstruida",
+      "descricao_sanitizada": "TESTE DE PERSISTENCIA da equipe (sera descartado)",
+      "status": "descartado",
+      "fonte": "cidadao"
+    }
+  ]
+}
