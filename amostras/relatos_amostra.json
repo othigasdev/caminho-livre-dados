@@ -1,6 +1,17 @@
 {
-  "atualizado_em": "2026-11-15T18:34:46Z",
+  "atualizado_em": "2026-11-16T15:57:56Z",
   "itens": [
+    {
+      "id": "169044d4-370b-4791-9b75-5771aae84b41",
+      "criado_em": "2026-11-15T20:10:23.565Z",
+      "atualizado_em": "2026-11-15T20:10:23.565Z",
+      "latitude": -23.564,
+      "longitude": -46.6531,
+      "categoria": "travessia_barreira",
+      "descricao_sanitizada": "Travessia do shopping com barreira",
+      "status": "pendente",
+      "fonte": "cidadao"
+    },
     {
       "id": "c57d3761-28da-4a59-a289-60b1428e0f44",
       "criado_em": "2026-11-14T14:01:16.333Z",
@@ -43,17 +54,6 @@
       "categoria": "rampa_bloqueada",
       "descricao_sanitizada": "Rampa da esquina tomada por caçamba de entulho [demonstração] (via central_156)",
       "status": "pendente",
-      "fonte": "cidadao"
-    },
-    {
-      "id": "aabbbfa4-3d28-4833-8867-f657a69ba826",
-      "criado_em": "2026-11-13T23:52:38.723Z",
-      "atualizado_em": "2026-11-13T23:54:10.475Z",
-      "latitude": -23.5645,
-      "longitude": -46.6525,
-      "categoria": "calcada_obstruida",
-      "descricao_sanitizada": "TESTE DE PERSISTENCIA da equipe (sera descartado)",
-      "status": "descartado",
       "fonte": "cidadao"
     }
   ]
